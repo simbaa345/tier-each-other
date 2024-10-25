@@ -12,6 +12,9 @@ let items;
 let tierList;
 let timer;
 
+// Set up socket
+const socket = io();
+
 // Set up event listeners
 submitButton.addEventListener('click', handleSubmitTierList);
 
@@ -26,6 +29,9 @@ function renderGameInterface() {
         itemElement.innerText = item;
         itemElement.dataset.itemIndex = index;
         itemElement.classList.add('item');
+        itemElement.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('itemIndex', itemElement.dataset.itemIndex);
+        });
         itemContainer.appendChild(itemElement);
     });
 
@@ -35,28 +41,15 @@ function renderGameInterface() {
         tierElement.innerText = tier.name;
         tierElement.dataset.tierIndex = index;
         tierElement.classList.add('tier');
-        tierListContainer.appendChild(tierElement);
-    });
-
-    // Set up drag-and-drop functionality
-    const itemsArray = Array.from(itemContainer.children);
-    itemsArray.forEach((item) => {
-        item.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('itemIndex', item.dataset.itemIndex);
-        });
-    });
-
-    const tiersArray = Array.from(tierListContainer.children);
-    tiersArray.forEach((tier) => {
-        tier.addEventListener('dragover', (e) => {
+        tierElement.addEventListener('dragover', (e) => {
             e.preventDefault();
         });
-
-        tier.addEventListener('drop', (e) => {
+        tierElement.addEventListener('drop', (e) => {
             const itemIndex = e.dataTransfer.getData('itemIndex');
-            const tierIndex = tier.dataset.tierIndex;
+            const tierIndex = tierElement.dataset.tierIndex;
             updateTierList(itemIndex, tierIndex);
         });
+        tierListContainer.appendChild(tierElement);
     });
 }
 
@@ -70,7 +63,7 @@ function updateTierList(itemIndex, tierIndex) {
 // Function to handle tier list submission
 function handleSubmitTierList() {
     // Send tier list to server
-    socket.emit('submit-tier-list', tierList);
+    socket.emit('tier-list', tierList);
 }
 
 // Function to start game timer
@@ -101,4 +94,9 @@ socket.on('game-results', (data) => {
     const resultsElement = document.createElement('div');
     resultsElement.innerText = `Your score: ${data.score}`;
     gameContainer.appendChild(resultsElement);
+});
+
+socket.on('send-tier-list', () => {
+    // Send tier list to server
+    socket.emit('tier-list', tierList);
 });
